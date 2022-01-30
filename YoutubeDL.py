@@ -2,14 +2,39 @@ import threading
 from time import sleep
 from random import randint
 import PySimpleGUIQt as sg
+from pytube import YouTube
 
+
+download_directory = "/Users/akira/Downloads"
 download_count = 0
+file_size = 0
 
-def download_file(window):
-    global download_count
-    for count in range(0, 101, 2):     # Download file block by block
-        sleep(0.1) 
-        download_count = count
+def percent(self, tem, total):
+        perc = (float(tem) / float(total)) * float(100)
+        return perc
+
+
+def progress_function(stream = None, chunk = None, file_handle = None, bytes_remaining = None):
+    global download_count, file_size
+    #Gets the percentage of the file that has been downloaded.
+    print(file_size, bytes_remaining)
+    download_count = (100*(file_size-bytes_remaining))/file_size
+    print('{:00.0f}% downloaded'.format(download_count))
+
+
+def download_file(window, link):
+    print('start downloading')
+    #yt = YouTube(link, on_progress_callback=progress_function)
+    #yt = YouTube(link)
+    video = YouTube(link, on_progress_callback=progress_function)
+    video_type = video.streams.filter(progressive = True, file_extension = "mp4").first()
+    title = video.title
+    print ("Fetching: {}...".format(title))
+    global file_size
+    file_size = video_type.filesize
+    print(file_size)
+    video_type.download(download_directory)
+    print('download completed.')
 
 sg.theme("DarkBlue")
 
@@ -19,33 +44,41 @@ progress_bar = [
 ]
 
 layout = [
-    [sg.Button('Download')],
+    [sg.Input(key='link'), sg.Button('Download')],
     [sg.Column(progress_bar, key='Progress', visible=False)],
 ]
-window       = sg.Window('Title', layout, size=(600, 80), finalize=True,
-    use_default_focus=False)
-download     = window['Download']
-progress_bar = window['Progress Bar']
-percent      = window['Percent']
-progress     = window['Progress']
-while True:
-    event, values = window.read(timeout=100)
-    if event == sg.WINDOW_CLOSED:
-        break
-    elif event == 'Download':
-        count = 0
-        download.update(disabled=True)
-        progress_bar.update_bar(current_count=0, max=100)
-        progress.update(visible=True)
-        thread = threading.Thread(target=download_file, args=(window, ), daemon=True)
-        thread.start()
-    
-    progress_bar.update_bar(current_count=download_count)
-    percent.update(value=f'{download_count:>3d}%')
-    window.refresh()
-    if download_count == 100:
-        sleep(1)
-        download.update(disabled=False)
-        progress.update(visible=False)
 
-window.close()
+def main():
+    window       = sg.Window('I am Kei!!', layout, size=(600, 80), finalize=True,
+        use_default_focus=False)
+    download     = window['Download']
+    progress_bar = window['Progress Bar']
+    percent      = window['Percent']
+    progress     = window['Progress']
+    while True:
+        event, values = window.read(timeout=100)
+        if event == sg.WINDOW_CLOSED:
+            break
+        elif event == 'Download':
+            print(values)
+            link = values['link']
+            count = 0
+            download.update(disabled=True)
+            progress_bar.update_bar(current_count=0, max=100)
+            progress.update(visible=True)
+            thread = threading.Thread(target=download_file, args=(window, link), daemon=True)
+            thread.start()
+        
+        progress_bar.update_bar(current_count=download_count)
+        percent.update(value=f'{download_count:>3d}%')
+        window.refresh()
+        if download_count == 100:
+            sleep(1)
+            download.update(disabled=False)
+            progress.update(visible=False)
+
+    window.close()
+
+
+if __name__ == "__main__":
+    main()

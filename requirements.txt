@@ -1,0 +1,4 @@
+PySide2==5.15.2.1
+PySimpleGUIQt==0.35.0
+pytube==11.0.2
+ffmpeg==1.4
