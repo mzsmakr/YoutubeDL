@@ -5,16 +5,12 @@ import PySimpleGUIQt as sg
 from pytube import YouTube
 
 
-download_directory = "/Users/akira/Downloads"
+download_directory = ""
 download_count = 0
 file_size = 0
 
-def percent(self, tem, total):
-        perc = (float(tem) / float(total)) * float(100)
-        return perc
 
-
-def progress_function(stream = None, chunk = None, file_handle = None, bytes_remaining = None):
+def progress_function(stream = None, chunk = None, bytes_remaining = None):
     global download_count, file_size
     #Gets the percentage of the file that has been downloaded.
     print(file_size, bytes_remaining)
@@ -24,8 +20,6 @@ def progress_function(stream = None, chunk = None, file_handle = None, bytes_rem
 
 def download_file(window, link):
     print('start downloading')
-    #yt = YouTube(link, on_progress_callback=progress_function)
-    #yt = YouTube(link)
     video = YouTube(link, on_progress_callback=progress_function)
     video_type = video.streams.filter(progressive = True, file_extension = "mp4").first()
     title = video.title
@@ -33,7 +27,8 @@ def download_file(window, link):
     global file_size
     file_size = video_type.filesize
     print(file_size)
-    video_type.download(download_directory)
+    video_type.download()
+    download_count = 100
     print('download completed.')
 
 sg.theme("DarkBlue")
@@ -49,7 +44,7 @@ layout = [
 ]
 
 def main():
-    window       = sg.Window('I am Kei!!', layout, size=(600, 80), finalize=True,
+    window       = sg.Window('YoutubeDL', layout, size=(600, 200), finalize=True,
         use_default_focus=False)
     download     = window['Download']
     progress_bar = window['Progress Bar']
@@ -70,7 +65,7 @@ def main():
             thread.start()
         
         progress_bar.update_bar(current_count=download_count)
-        percent.update(value=f'{download_count:>3d}%')
+        percent.update(value='{:00.0f}%'.format(download_count))
         window.refresh()
         if download_count == 100:
             sleep(1)
