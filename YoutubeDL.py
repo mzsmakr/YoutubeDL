@@ -3,11 +3,21 @@ from time import sleep
 from random import randint
 import PySimpleGUIQt as sg
 from pytube import YouTube
-
+import glob
+import subprocess
+import os
+from moviepy.editor import *
+import shutil
 
 download_directory = ""
 download_count = 0
 file_size = 0
+status = ''
+
+def bars_callback(self, bar, attr, value,old_value=None):
+    # Every time the logger progress is updated, this function is called        
+    percentage = (value / self.bars[bar]['total']) * 100
+    print(bar,attr,percentage)
 
 
 def progress_function(stream = None, chunk = None, bytes_remaining = None):
@@ -19,19 +29,38 @@ def progress_function(stream = None, chunk = None, bytes_remaining = None):
 
 
 def download_file(window, link):
+    global status
     print('start downloading')
+    status = 'start downloading'
     video = YouTube(link, on_progress_callback=progress_function)
     video_type = video.streams.filter(progressive = True, file_extension = "mp4").first()
     title = video.title
     print ("Fetching: {}...".format(title))
+    status = "Downloading: {}...".format(title)
     global file_size
     file_size = video_type.filesize
     print(file_size)
     video_type.download()
     download_count = 100
     print('download completed.')
+    status = 'Download completed.'
+    dir = glob.glob("*.mp4")
+    print(dir)
+    name = [n.split('.')[0] for n in dir]
+    print(name)
+    #cmd = 'ffmpeg -i \"{0}.mp4\" \"{0}.mp3\"'.format(name[0])
+    #subprocess.call(cmd, shell=True)
+    videoclip = VideoFileClip('{}.mp4'.format(name[0]))
+    audioclip = videoclip.audio
+    status = 'Converting MP3 file.'
+    audioclip.write_audiofile('{}.mp3'.format(name[0]))
+    audioclip.close()
+    videoclip.close()
+    shutil.move('{}.mp3'.format(name[0]), '/Users/akira/Downloads/{}.mp3'.format(name[0]))
+    os.remove(name[0]+".mp4")
+    status = 'Finish Download {}.mp3'.format(name[0])
 
-sg.theme("DarkBlue")
+sg.theme('DarkAmber') 
 
 progress_bar = [
     [sg.ProgressBar(100, size=(40, 20), pad=(0, 0), key='Progress Bar'),
@@ -39,11 +68,13 @@ progress_bar = [
 ]
 
 layout = [
-    [sg.Input(key='link'), sg.Button('Download')],
+    [sg.Input(key='link',size=(40, 1)), sg.Button('Download',size=(10, 1)) ],
     [sg.Column(progress_bar, key='Progress', visible=False)],
+    [sg.Text(key='-STATUS-')]
 ]
 
 def main():
+    global status
     window       = sg.Window('YoutubeDL', layout, size=(600, 200), finalize=True,
         use_default_focus=False)
     download     = window['Download']
@@ -66,6 +97,7 @@ def main():
         
         progress_bar.update_bar(current_count=download_count)
         percent.update(value='{:00.0f}%'.format(download_count))
+        window['-STATUS-'].update(status)
         window.refresh()
         if download_count == 100:
             sleep(1)
