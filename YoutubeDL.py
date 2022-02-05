@@ -8,11 +8,16 @@ import subprocess
 import os
 from moviepy.editor import *
 import shutil
+from pathlib import Path
 
 download_directory = ""
 download_count = 0
 file_size = 0
 status = ''
+home_dir = Path.home()
+print(home_dir)
+save_dir = str(home_dir) + '/Downloads'
+print(save_dir)
 
 def bars_callback(self, bar, attr, value,old_value=None):
     # Every time the logger progress is updated, this function is called        
@@ -29,7 +34,7 @@ def progress_function(stream = None, chunk = None, bytes_remaining = None):
 
 
 def download_file(window, link):
-    global status
+    global status, save_dir
     print('start downloading')
     status = 'start downloading'
     video = YouTube(link, on_progress_callback=progress_function)
@@ -56,7 +61,7 @@ def download_file(window, link):
     audioclip.write_audiofile('{}.mp3'.format(name[0]))
     audioclip.close()
     videoclip.close()
-    shutil.move('{}.mp3'.format(name[0]), '/Users/akira/Downloads/{}.mp3'.format(name[0]))
+    shutil.move('{}.mp3'.format(name[0]), '{}/{}.mp3'.format(save_dir, name[0]))
     os.remove(name[0]+".mp4")
     status = 'Finish Download {}.mp3'.format(name[0])
 
@@ -74,7 +79,7 @@ layout = [
 ]
 
 def main():
-    global status
+    global status, download_count
     window       = sg.Window('YoutubeDL', layout, size=(600, 200), finalize=True,
         use_default_focus=False)
     download     = window['Download']
@@ -86,6 +91,9 @@ def main():
         if event == sg.WINDOW_CLOSED:
             break
         elif event == 'Download':
+            download_count = 0
+            status = ""
+
             print(values)
             link = values['link']
             count = 0
@@ -94,7 +102,6 @@ def main():
             progress.update(visible=True)
             thread = threading.Thread(target=download_file, args=(window, link), daemon=True)
             thread.start()
-        
         progress_bar.update_bar(current_count=download_count)
         percent.update(value='{:00.0f}%'.format(download_count))
         window['-STATUS-'].update(status)
@@ -102,7 +109,7 @@ def main():
         if download_count == 100:
             sleep(1)
             download.update(disabled=False)
-            progress.update(visible=False)
+        #    progress.update(visible=False)
 
     window.close()
 
