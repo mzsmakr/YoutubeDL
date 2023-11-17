@@ -37,7 +37,7 @@ def download_file(window, link):
     global status, save_dir
     print('start downloading')
     status = 'start downloading'
-    video = YouTube(link, on_progress_callback=progress_function)
+    video = YouTube(link, on_progress_callback=progress_function, use_oauth=True, allow_oauth_cache=True)
     video_type = video.streams.filter(progressive = True, file_extension = "mp4").first()
     title = video.title
     print ("Fetching: {}...".format(title))
@@ -86,6 +86,12 @@ def main():
     progress_bar = window['Progress Bar']
     percent      = window['Percent']
     progress     = window['Progress']
+    all_mp4 = glob.glob("*.mp4")
+
+    # delete all mp4 if there is any
+    for mp4 in all_mp4:
+        os.remove(mp4)
+
     while True:
         event, values = window.read(timeout=100)
         if event == sg.WINDOW_CLOSED:
